@@ -1,6 +1,6 @@
-class AuthUser(object):
-    def __init__(self, values):
-        self.values = values
+class Auth(object):
+    def __init__(self, values=None):
+        self.values = values or {}
 
     def __getattribute__(self, key):
         if key in self.values:

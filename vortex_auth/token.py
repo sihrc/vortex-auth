@@ -5,65 +5,130 @@ from .config import Configuration
 from .errors import InvalidRefreshToken, InvalidToken, ExpiredToken
 
 
-def decode_token(self, token, audience=()):
-    try:
-        data = jwt.decode(
-            token,
-            Configuration.auth_secret,
-            algorithm="HS256",
-            audience=Configuration.audience + audience,
+class TokenManager:
+    def decode_token(self, token, audience=()):
+        try:
+            data = jwt.decode(
+                token,
+                Configuration.auth_secret,
+                algorithm="HS256",
+                audience=Configuration.audience + audience,
+            )
+        except (jwt.DecodeError, jwt.InvalidAudienceError):
+            raise InvalidToken()
+        except jwt.ExpiredSignatureError:
+            raise ExpiredToken()
+        else:
+            return {
+                key[5:]: value for key, value in data.items() if key.startswith("user_")
+            }
+
+    @classmethod
+    def decode_refresh_token(cls, request, token, **validate_args):
+        try:
+            token_payload = jwt.decode(
+                token,
+                Configuration.refresh_token_secret,
+                algorithm="HS256",
+                audience=["vortex:refresh"],
+            )
+        except (jwt.DecodeError, jwt.InvalidAudienceError):
+            raise InvalidToken()
+        else:
+            user_info = Configuration.validate_refresh_token(
+                request, "rt_id", token_payload, **validate_args
+            )
+
+            if not user_info:
+                raise InvalidRefreshToken()
+
+            return token_payload["rt_id"], user_info
+
+    @classmethod
+    def generate_refresh_token(cls, rt_id, payload=None):
+        """
+        No option to choose audience.
+        Payload should pass validate_refresh_token function.
+        """
+        payload = payload or {}
+        payload.update(
+            {
+                "rt_id": rt_id,
+                "aud": ["vortex:refresh"],
+                "iat": datetime.datetime.utcnow(),
+            }
         )
-    except (jwt.DecodeError, jwt.InvalidAudienceError):
-        raise InvalidToken()
-    except jwt.ExpiredSignatureError:
-        raise ExpiredToken()
-    else:
-        return {
-            key[5:]: value for key, value in data.items() if key.startswith("user_")
-        }
+        return jwt.encode(
+            payload, Configuration.refresh_token_secret, algorithm="HS256"
+        ).decode()
 
+    @classmethod
+    def generate_token(
+        cls,
+        request,
+        refresh_token=None,
+        audience=tuple(),
+        user_info=None,
+        **validate_args
+    ):
+        """
+        Data in RefreshToken will be encoded in auth payload
+        """
+        if not user_info:
+            _, user_info = cls.decode_refresh_token(
+                request,
+                refresh_token,
+                Configuration.refresh_token_secret,
+                algorithm="HS256",
+                audience=("vortex:refresh",),
+            )
 
-def generate_refresh_token(payload):
-    """
-    No option to choose audience.
-    Payload should pass validate_refresh_token function.
-    """
-    payload["aud"] = ["vortex:refresh"]
-    payload["iat"] = datetime.datetime.utcnow()
-    return jwt.encode(
-        payload, Configuration.refresh_token_secret, algorithm="HS256"
-    ).decode()
+        audience = Configuration.audience + list(audience)
+        now = datetime.datetime.utcnow()
+        user_info.update(
+            {
+                "aud": list(audience),
+                "iat": now,
+                "exp": now + datetime.timedelta(hours=Configuration.auth_token_expiry),
+            }
+        )
 
+        return jwt.encode(
+            user_info, Configuration.auth_secret, algorithm="HS256"
+        ).decode()
 
-def generate_token(request, refresh_token, audience=tuple(), **validate_args):
-    """
-    Data in RefreshToken will be encoded in auth payload
-    """
-    token_payload = Configuration.decode(
-        refresh_token,
-        Configuration.refresh_token_secret,
-        algorithm="HS256",
-        audience=("vortex:refresh",),
-    )
+    @classmethod
+    def clear_cookies(cls, response, auth_token=None, refresh_token=None):
+        response.set_cookie(
+            Configuration.auth_cookie_name,
+            "",
+            domain=Configuration.cookie_domain,
+            max_age=0,
+        )
 
-    is_valid = Configuration.validate_refresh_token(
-        request, token_payload, **validate_args
-    )
+        response.set_cookie(
+            Configuration.refresh_cookie_name,
+            "",
+            domain=Configuration.cookie_domain,
+            max_age=0,
+        )
+        return response
 
-    if not is_valid:
-        raise InvalidRefreshToken()
-
-    audience = Configuration.audience + list(audience)
-    now = datetime.datetime.utcnow()
-    token_payload.update(
-        {
-            "aud": list(audience),
-            "iat": now,
-            "exp": now + datetime.timedelta(hours=Configuration.auth_token_expiry),
-        }
-    )
-
-    return jwt.encode(
-        token_payload, Configuration.auth_secret, algorithm="HS256"
-    ).decode()
-
+    @classmethod
+    def set_cookies(cls, response, auth_token=None, refresh_token=None):
+        if auth_token:
+            response.set_cookie(
+                Configuration.auth_cookie_name,
+                auth_token,
+                domain=Configuration.cookie_domain,
+                secure=True,
+                max_age=(Configuration.auth_token_expiry + 1) * 60,
+            )
+        if refresh_token:
+            response.set_cookie(
+                Configuration.refresh_cookie_name,
+                refresh_token,
+                secure=True,
+                domain=Configuration.cookie_domain,
+            )
+        return response

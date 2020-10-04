@@ -20,13 +20,15 @@ def configure(
     audience=(),
     auth_cookie_name="auth_token",
     refresh_cookie_name="refresh_token",
-    exc_cls=None,
+    generate_token=None,
+    validate_refresh_token=lambda request, token_payload: False,
 ):
     if Configuration.configured:
         raise RuntimeError("configure cannot be called twice")
 
     assert isinstance(audience, (list, tuple, set)), "audience must be list,tuple,set"
 
+    Configuration.cookie_domain = cookie_domain
     Configuration.audience = audience
     Configuration.auth_cookie_name = auth_cookie_name
     Configuration.auth_token_expiry = 120
@@ -35,8 +37,8 @@ def configure(
     Configuration.refresh_token_secret = refresh_token_secret
     Configuration.token_secret = token_secret
     # Offload to another service or uses default
-    Configuration.generate_token = None
-    Configuration.validate_refresh_token = lambda request, token_payload: False
+    Configuration.generate_token = generate_token
+    Configuration.validate_refresh_token = validate_refresh_token
 
 
 def check_config():
