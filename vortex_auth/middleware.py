@@ -4,8 +4,8 @@ from vortex.logger import Logging
 
 from .config import Configuration
 from .errors import LoginRequired
-from .token import decode_token, generate_token
-from .user import Auth
+from .token import TokenManager
+from .holder import Auth
 
 logger = Logging.get("request.auth")
 
@@ -32,11 +32,11 @@ async def auth_middleware(request, handler):
         if not refresh_token:
             # Login or acquire auth/refresh token
             raise LoginRequired()
-        generate_token_fn = Configuration.generate_token or generate_token
+        generate_token_fn = Configuration.generate_token or TokenManager.generate_token
         auth_token = await generate_token_fn(request, refresh_token)
         assign_cookie = True
 
-    info = decode_token(auth_token)
+    info = TokenManager.decode_token(auth_token)
     info["rt"] = refresh_token
     request.auth.values.update(info)
 

@@ -43,6 +43,4 @@ def configure(
 
 def check_config():
     if not Configuration.configured:
-        raise RuntimeError(
-            "vortex.auth.config.configured was not run. Must be run once."
-        )
+        raise RuntimeError("Authorization Plugin was not configured. Must be run once.")

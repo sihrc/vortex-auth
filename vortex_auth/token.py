@@ -6,7 +6,8 @@ from .errors import InvalidRefreshToken, InvalidToken, ExpiredToken
 
 
 class TokenManager:
-    def decode_token(self, token, audience=()):
+    @classmethod
+    def decode_token(cls, token, audience=()):
         try:
             data = jwt.decode(
                 token,
