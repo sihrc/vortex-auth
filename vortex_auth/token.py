@@ -11,7 +11,7 @@ class TokenManager:
         try:
             data = jwt.decode(
                 token,
-                Configuration.auth_secret,
+                Configuration.auth_token_secret,
                 algorithm="HS256",
                 audience=Configuration.audience + audience,
             )
@@ -36,14 +36,15 @@ class TokenManager:
         except (jwt.DecodeError, jwt.InvalidAudienceError):
             raise InvalidToken()
         else:
+            rt_id = token_payload["rt_id"]
             user_info = Configuration.validate_refresh_token(
-                request, "rt_id", token_payload, **validate_args
+                request, rt_id, token_payload, **validate_args
             )
 
             if not user_info:
                 raise InvalidRefreshToken()
 
-            return token_payload["rt_id"], user_info
+            return rt_id, user_info
 
     @classmethod
     def generate_refresh_token(cls, rt_id, payload=None):
@@ -70,7 +71,7 @@ class TokenManager:
         refresh_token=None,
         audience=tuple(),
         user_info=None,
-        **validate_args
+        **validate_args,
     ):
         """
         Data in RefreshToken will be encoded in auth payload
@@ -81,21 +82,20 @@ class TokenManager:
                 refresh_token,
                 Configuration.refresh_token_secret,
                 algorithm="HS256",
-                audience=("vortex:refresh",),
             )
 
-        audience = Configuration.audience + list(audience)
+        audience = Configuration.audience + tuple(audience)
         now = datetime.datetime.utcnow()
-        user_info.update(
+
+        return jwt.encode(
             {
                 "aud": list(audience),
                 "iat": now,
                 "exp": now + datetime.timedelta(hours=Configuration.auth_token_expiry),
-            }
-        )
-
-        return jwt.encode(
-            user_info, Configuration.auth_secret, algorithm="HS256"
+                **user_info,
+            },
+            Configuration.auth_token_secret,
+            algorithm="HS256",
         ).decode()
 
     @classmethod
@@ -122,14 +122,14 @@ class TokenManager:
                 Configuration.auth_cookie_name,
                 auth_token,
                 domain=Configuration.cookie_domain,
-                secure=True,
+                secure=Configuration.secure_cookies,
                 max_age=(Configuration.auth_token_expiry + 1) * 60,
             )
         if refresh_token:
             response.set_cookie(
                 Configuration.refresh_cookie_name,
                 refresh_token,
-                secure=True,
+                secure=Configuration.secure_cookies,
                 domain=Configuration.cookie_domain,
             )
         return response

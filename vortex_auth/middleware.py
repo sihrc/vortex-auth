@@ -13,12 +13,15 @@ logger = Logging.get("request.auth")
 @middleware
 async def auth_middleware(request, handler):
     request.auth = Auth()
-
-    if not request.middleware_configs.get("login_required"):
+    if not request.middleware.configs.get("login_required"):
         return await handler(request)
 
-    auth_token = request.cookies.get(Configuration.auth_cookie_name)
-    refresh_token = request.cookies.get(Configuration.refresh_cookie_name)
+    request.auth.token = auth_token = request.cookies.get(
+        Configuration.auth_cookie_name
+    )
+    request.auth.refresh_token = refresh_token = request.cookies.get(
+        Configuration.refresh_cookie_name
+    )
 
     assign_cookie = False
 
@@ -40,8 +43,6 @@ async def auth_middleware(request, handler):
     info["rt"] = refresh_token
     request.auth.values.update(info)
 
-    logger.debug(f"Authenticated User {request.current_user}")
-
     response = await handler(request)
 
     if assign_cookie:
@@ -49,7 +50,7 @@ async def auth_middleware(request, handler):
             Configuration.auth_cookie_name,
             auth_token,
             domain=Configuration.cookie_domain,
-            secure=True,
+            secure=Configuration.secure_cookies,
             max_age=(Configuration.auth_token_expiry + 1) * 60,
         )
     return response
