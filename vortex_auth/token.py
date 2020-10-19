@@ -78,10 +78,7 @@ class TokenManager:
         """
         if not user_info:
             _, user_info = cls.decode_refresh_token(
-                request,
-                refresh_token,
-                Configuration.refresh_token_secret,
-                algorithm="HS256",
+                request, refresh_token, algorithm="HS256",
             )
 
         audience = Configuration.audience + tuple(audience)

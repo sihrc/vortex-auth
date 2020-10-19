@@ -1,13 +1,9 @@
 from aiohttp.web import middleware
 
-from vortex.logger import Logging
-
 from .config import Configuration
 from .errors import LoginRequired
 from .token import TokenManager
 from .holder import Auth
-
-logger = Logging.get("request.auth")
 
 
 @middleware
@@ -24,7 +20,6 @@ async def auth_middleware(request, handler):
     )
 
     assign_cookie = False
-
     # Check Headers
     if not auth_token:
         auth_header = request.headers.get("Authorization", "")
