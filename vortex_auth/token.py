@@ -77,9 +77,7 @@ class TokenManager:
         Data in RefreshToken will be encoded in auth payload
         """
         if not user_info:
-            _, user_info = cls.decode_refresh_token(
-                request, refresh_token, algorithm="HS256",
-            )
+            _, user_info = cls.decode_refresh_token(request, refresh_token)
 
         audience = Configuration.audience + tuple(audience)
         now = datetime.datetime.utcnow()
