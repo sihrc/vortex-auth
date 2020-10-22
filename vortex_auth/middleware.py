@@ -5,6 +5,8 @@ from .errors import LoginRequired
 from .token import TokenManager
 from .holder import Auth
 
+from vortex.threading_utils import threaded_exec
+
 
 @middleware
 async def auth_middleware(request, handler):
@@ -31,7 +33,7 @@ async def auth_middleware(request, handler):
             # Login or acquire auth/refresh token
             raise LoginRequired()
         generate_token_fn = Configuration.generate_token or TokenManager.generate_token
-        auth_token = await generate_token_fn(request, refresh_token)
+        auth_token = await threaded_exec(generate_token_fn, request, refresh_token)
         assign_cookie = True
 
     info = TokenManager.decode_token(auth_token)
