@@ -111,12 +111,12 @@ class TokenManager:
         return response
 
     @classmethod
-    def set_cookies(cls, response, auth_token=None, refresh_token=None):
+    def set_cookies(cls, response, auth_token=None, domain=None, refresh_token=None):
         if auth_token:
             response.set_cookie(
                 Configuration.auth_cookie_name,
                 auth_token,
-                domain=Configuration.cookie_domain,
+                domain=domain or Configuration.cookie_domain,
                 secure=Configuration.secure_cookies,
                 max_age=(Configuration.auth_token_expiry + 1) * 60,
             )
@@ -125,6 +125,6 @@ class TokenManager:
                 Configuration.refresh_cookie_name,
                 refresh_token,
                 secure=Configuration.secure_cookies,
-                domain=Configuration.cookie_domain,
+                domain=domain or Configuration.cookie_domain,
             )
         return response
