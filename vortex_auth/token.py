@@ -95,30 +95,45 @@ class TokenManager:
 
     @classmethod
     def clear_cookies(cls, response, auth_token=None, refresh_token=None):
+        cookie_kwargs = {
+            "max_age": 0
+        }
+
+        if Configuration.cookie_domain:
+            cookie_kwargs["domain"] = Configuration.cookie_domain
+
         response.set_cookie(
             Configuration.auth_cookie_name,
             "",
-            domain=Configuration.cookie_domain,
-            max_age=0,
+            **cookie_kwargs
         )
 
         response.set_cookie(
             Configuration.refresh_cookie_name,
             "",
-            domain=Configuration.cookie_domain,
-            max_age=0,
+            **cookie_kwargs,
         )
         return response
 
     @classmethod
     def set_cookies(cls, response, auth_token=None, domain=None, refresh_token=None):
+        cookie_kwargs = {
+            "secure": Configuration.secure_cookies,
+            "max_age": (Configuration.auth_token_expiry + 1) * 60,
+        }
+
+        domain = domain or Configuration.cookie_domain,
+        if domain:
+            cookie_kwargs["domain"] = domain
+
+        if Configuration.cookie_domain:
+            cookie_kwargs["domain"] = Configuration.cookie_domain
+
         if auth_token:
             response.set_cookie(
                 Configuration.auth_cookie_name,
                 auth_token,
-                domain=domain or Configuration.cookie_domain,
-                secure=Configuration.secure_cookies,
-                max_age=(Configuration.auth_token_expiry + 1) * 60,
+
             )
         if refresh_token:
             response.set_cookie(
