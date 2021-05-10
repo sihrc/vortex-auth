@@ -1,7 +1,7 @@
 from aiohttp.web import middleware
 
 from .config import Configuration
-from .errors import LoginRequired
+from .errors import LoginRequired, ExpiredToken
 from .token import TokenManager
 from .holder import Auth
 
@@ -28,15 +28,17 @@ async def auth_middleware(request, handler):
         if auth_header.startswith("Bearer "):
             auth_token = auth_header.split()[-1]
 
-    if not auth_token:
+    try:
+        info = TokenManager.decode_token(auth_token)
+    except ExpiredToken:
         if not refresh_token:
             # Login or acquire auth/refresh token
             raise LoginRequired()
         generate_token_fn = Configuration.generate_token or TokenManager.generate_token
         auth_token = await threaded_exec(generate_token_fn, request, refresh_token)
+        info = TokenManager.decode_token(auth_token)
         assign_cookie = True
 
-    info = TokenManager.decode_token(auth_token)
     info["rt"] = refresh_token
     request.auth.values.update(info)
 
@@ -46,8 +48,8 @@ async def auth_middleware(request, handler):
         response.set_cookie(
             Configuration.auth_cookie_name,
             auth_token,
-            domain=Configuration.cookie_domain,
-            secure=Configuration.secure_cookies,
+            # domain=Configuration.cookie_domain,
+            # secure=Configuration.secure_cookies,
             max_age=(Configuration.auth_token_expiry + 1) * 60,
         )
     return response
