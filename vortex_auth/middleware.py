@@ -38,7 +38,6 @@ async def auth_middleware(request, handler):
         auth_token = await threaded_exec(generate_token_fn, request, refresh_token)
         info = TokenManager.decode_token(auth_token)
         assign_cookie = True
-
     info["rt"] = refresh_token
     request.auth.values.update(info)
 

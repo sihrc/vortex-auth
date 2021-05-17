@@ -53,15 +53,17 @@ class TokenManager:
         Payload should pass validate_refresh_token function.
         """
         payload = payload or {}
-        payload.update(
-            {
-                "rt_id": rt_id,
-                "aud": ["vortex:refresh"],
-                "iat": datetime.datetime.utcnow(),
-            }
-        )
         return jwt.encode(
-            payload, Configuration.refresh_token_secret, algorithm="HS256"
+            {
+                **payload,
+                **{
+                    "rt_id": rt_id,
+                    "aud": ["vortex:refresh"],
+                    "iat": datetime.datetime.utcnow(),
+                },
+            },
+            Configuration.refresh_token_secret,
+            algorithm="HS256",
         ).decode()
 
     @classmethod
