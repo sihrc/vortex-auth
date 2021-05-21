@@ -28,6 +28,8 @@ async def auth_middleware(request, handler):
         if auth_header.startswith("Bearer "):
             auth_token = auth_header.split()[-1]
 
+    if not auth_token and not refresh_token:
+        raise LoginRequired()
     try:
         info = TokenManager.decode_token(auth_token)
     except ExpiredToken:
