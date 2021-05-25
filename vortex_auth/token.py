@@ -118,7 +118,7 @@ class TokenManager:
             "max_age": (Configuration.auth_token_expiry + 1) * 60,
         }
 
-        domain = (domain or Configuration.cookie_domain,)
+        domain = domain or Configuration.cookie_domain
         if domain:
             cookie_kwargs["domain"] = domain
 
@@ -126,12 +126,13 @@ class TokenManager:
             response.set_cookie(
                 Configuration.auth_cookie_name,
                 auth_token,
+                domain=domain,
             )
         if refresh_token:
             response.set_cookie(
                 Configuration.refresh_cookie_name,
                 refresh_token,
                 # secure=Configuration.secure_cookies,
-                # domain=domain or Configuration.cookie_domain,
+                domain=domain,
             )
         return response
