@@ -7,11 +7,18 @@ from .errors import InvalidRefreshToken, InvalidToken, ExpiredToken
 
 class TokenManager:
     @classmethod
-    def decode_token(cls, token, audience=()):
+    def decode_fp_token(cls, token):
+        return cls.decode_token(
+            token, secret=Configuration.forgot_password_secret, audience=("vortex:fp",)
+        )
+
+    @classmethod
+    def decode_token(cls, token, secret=None, audience=()):
+        secret = secret or Configuration.auth_token_secret
         try:
             data = jwt.decode(
                 token,
-                Configuration.auth_token_secret,
+                secret,
                 algorithm="HS256",
                 audience=Configuration.audience + audience,
             )
@@ -67,13 +74,25 @@ class TokenManager:
         ).decode()
 
     @classmethod
+    def generate_fp_token(cls, request, fp_id):
+        return cls.generate_token(
+            request,
+            user_info={"user_fp_id": fp_id},
+            audience=("vortex:fp",),
+            secret=Configuration.forgot_password_secret,
+            expiry=Configuration.forgot_password_expiry,
+        )
+
+    @classmethod
     def generate_token(
         cls,
         request,
         refresh_token=None,
         audience=tuple(),
         user_info=None,
-        **validate_args,
+        secret: str = None,
+        expiry: int = None,  # in seconds
+        **_,
     ):
         """
         Data in RefreshToken will be encoded in auth payload
@@ -83,15 +102,15 @@ class TokenManager:
 
         audience = Configuration.audience + tuple(audience)
         now = datetime.datetime.utcnow()
-
+        expiry = expiry or Configuration.auth_token_expiry * 3600
         return jwt.encode(
             {
                 "aud": list(audience),
                 "iat": now,
-                "exp": now + datetime.timedelta(hours=Configuration.auth_token_expiry),
+                "exp": now + datetime.timedelta(seconds=expiry),
                 **user_info,
             },
-            Configuration.auth_token_secret,
+            secret or Configuration.auth_token_secret,
             algorithm="HS256",
         ).decode()
 

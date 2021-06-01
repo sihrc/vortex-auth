@@ -22,6 +22,8 @@ def configure(
     audience=("vortex:base",),
     auth_cookie_name="auth_token",
     refresh_cookie_name="refresh_token",
+    forgot_password_secret=None,
+    forgot_password_expiry=15 * 60,  # 15 minutes
     generate_token=None,
     secure_cookies=True,
     validate_refresh_token=lambda request, token_payload: False,
@@ -39,6 +41,8 @@ def configure(
     Configuration.configured = True
     Configuration.refresh_cookie_name = refresh_cookie_name
     Configuration.refresh_token_secret = refresh_token_secret
+    Configuration.forgot_password_secret = forgot_password_secret
+    Configuration.forgot_password_expiry = forgot_password_expiry
     Configuration.auth_token_secret = auth_token_secret
     # Offload to another service or uses default
     Configuration.generate_token = generate_token
