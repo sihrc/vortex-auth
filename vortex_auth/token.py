@@ -74,13 +74,14 @@ class TokenManager:
         ).decode()
 
     @classmethod
-    def generate_fp_token(cls, request, fp_id):
+    def generate_fp_token(cls, request, fp_id, expiry=None):
+        expiry = expiry or Configuration.forgot_password_expiry
         return cls.generate_token(
             request,
             user_info={"user_fp_id": fp_id},
             audience=("vortex:fp",),
             secret=Configuration.forgot_password_secret,
-            expiry=Configuration.forgot_password_expiry,
+            expiry=expiry,
         )
 
     @classmethod
