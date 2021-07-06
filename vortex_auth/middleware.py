@@ -1,11 +1,10 @@
-from aiohttp.web import middleware
+from vortex import middleware
+from vortex.threading_utils import threaded_exec
 
 from .config import Configuration
-from .errors import LoginRequired, ExpiredToken
-from .token import TokenManager
+from .errors import ExpiredToken, LoginRequired
 from .holder import Auth
-
-from vortex.threading_utils import threaded_exec
+from .token import TokenManager
 
 
 @middleware
