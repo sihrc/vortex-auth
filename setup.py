@@ -8,6 +8,10 @@ setup(
     author="Chris Lee",
     author_email="sihrc.c.lee@gmail.com",
     packages=find_packages(),
-    install_requires=["PyJWT==1.7.1", "setuptools==50.0.3", "wheel==0.35.1",],
+    install_requires=[
+        "PyJWT==1.7.1",
+        "setuptools>=57.4.0",
+        "wheel>=0.35.1",
+    ],
     extras_require={"testing": ["pytest", "pytest-aiohttp"]},
 )
